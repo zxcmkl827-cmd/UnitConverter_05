@@ -1,5 +1,6 @@
 #include <cctype>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <regex>
@@ -139,8 +140,9 @@ BoundaryResult handleInput(const std::string& input) {
 std::string formatPlain(const BoundaryResult& result) {
     std::ostringstream output;
     for (const auto& conversion : result.conversions) {
-        output << result.source.value << ' ' << result.source.unit << " = "
-               << conversion.value << ' ' << conversion.unit << '\n';
+        output << std::defaultfloat << result.source.value << ' ' << result.source.unit << " = "
+               << std::fixed << std::setprecision(6) << conversion.value << ' '
+               << conversion.unit << '\n';
     }
 
     return output.str();
@@ -188,7 +190,7 @@ bool loadConfig(const std::string& path) {
 #ifndef UNIT_CONVERTER_TEST
 int main() {
     resetDefaultUnits();
-    std::cout << "Insert value for converting (ex: meter:2.5): ";
+    std::cerr << "Insert value for converting (ex: meter:2.5): ";
 
     std::string input;
     std::getline(std::cin, input);

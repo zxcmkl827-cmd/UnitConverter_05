@@ -186,6 +186,25 @@ ctest --test-dir build --output-on-failure
 
 ## RED 단계 To-Do 리스트
 
+## Golden Master 회귀 안전장치
+
+> Refactoring 시작 전 구축. GREEN 완료 후 즉시 적용.
+
+### 기준 파일 생성
+- [ ] GM-01: golden_master_expected.txt 생성 (meter:2.5 기준 출력)
+- [ ] GM-02: feet:1.0 / yard:1.0 / meter:0.0 시나리오 추가
+- [ ] GM-03: git add tests/golden_master_expected.txt (버전 관리 포함)
+
+### 테스트 코드
+- [ ] GM-04: test_golden_master.cpp + golden_master_expected.txt 작성
+- [ ] GM-05: approve 패턴 적용 (파일 없으면 생성, 있으면 비교)
+- [ ] GM-06: CMake: add_test(NAME GoldenMaster COMMAND UnitConverter_test) → PASS 확인
+
+### CI 연동
+- [ ] GM-07: .github/workflows/golden_master.yml 작성
+- [ ] GM-08: PR 머지 차단 (required status check) 설정
+- [ ] GM-09: Refactoring 후 Golden Master 재실행 → PASS 확인
+
 > 이 체크리스트는 test_plan.md 기반으로 생성되었습니다.
 > 각 항목은 RED(실패 테스트 작성) 완료 시 체크합니다.
 
