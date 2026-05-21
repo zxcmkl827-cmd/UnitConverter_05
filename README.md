@@ -406,4 +406,3 @@ refactor: separate boundary formatting responsibility
 ## 라이선스
 
 MIT License. 이 프로젝트는 학습용으로 제공됩니다.
-
