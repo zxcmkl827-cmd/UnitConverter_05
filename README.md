@@ -388,4 +388,3 @@ refactor: separate boundary formatting responsibility
 
 MIT License. 이 프로젝트는 학습용으로 제공됩니다.
 
-
