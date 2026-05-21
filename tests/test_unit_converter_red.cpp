@@ -4,7 +4,14 @@
 #include "../cpp/UnitConverter.cpp"
 
 TEST_CASE("parse_meter_input_returns_conversion_result", "[boundary]") { FAIL("RED"); }
-TEST_CASE("parse_missing_colon_throws_invalid_argument", "[boundary]") { FAIL("RED"); }
+TEST_CASE("parse_missing_colon_throws_invalid_argument", "[boundary]") {
+    try {
+        parseInput("meter");
+        FAIL("Expected std::invalid_argument");
+    } catch (const std::invalid_argument&) {
+        REQUIRE(true);
+    }
+}
 TEST_CASE("parse_negative_value_throws_invalid_argument", "[boundary]") { FAIL("RED"); }
 TEST_CASE("parse_unknown_unit_throws_invalid_argument", "[boundary]") { FAIL("RED"); }
 TEST_CASE("format_plain_output_preserves_source_unit_and_value", "[boundary]") { FAIL("RED"); }

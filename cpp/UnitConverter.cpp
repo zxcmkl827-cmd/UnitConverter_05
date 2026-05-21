@@ -8,6 +8,19 @@ constexpr double kMeterToFeet = 3.28084;
 constexpr double kMeterToYard = 1.09361;
 }
 
+struct ParsedInput {
+    std::string unit;
+    double value;
+};
+
+ParsedInput parseInput(const std::string& input) {
+    if (input.find(':') == std::string::npos) {
+        throw std::invalid_argument("INVALID_FORMAT");
+    }
+
+    return {input, 0.0};
+}
+
 double convert(const std::string& fromUnit, double value, const std::string& toUnit) {
     if (fromUnit == "meter" && toUnit == "feet") {
         return value * kMeterToFeet;
