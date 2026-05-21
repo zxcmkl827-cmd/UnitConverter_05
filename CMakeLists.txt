@@ -33,6 +33,18 @@ set_tests_properties(unit_converter_red_tests PROPERTIES
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
+add_executable(decaying_unit_tests tests/test_decaying_unit.cpp)
+target_include_directories(decaying_unit_tests PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/third_party/catch2
+)
+target_compile_options(decaying_unit_tests PRIVATE
+    $<$<CXX_COMPILER_ID:MSVC>:/utf-8>
+)
+add_test(NAME decaying_unit_tests COMMAND decaying_unit_tests)
+set_tests_properties(decaying_unit_tests PROPERTIES
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
 add_executable(UnitConverter_test tests/test_golden_master.cpp)
 target_include_directories(UnitConverter_test PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/catch2
