@@ -1,0 +1,149 @@
+project:
+  name: "UnitConverter_05"
+  language: "C++"
+  standard: "C++17"
+  purpose: "길이 단위 변환기를 통해 계약 정의, 테스트 우선 검증, 레이어 분리를 학습한다."
+  primary_docs:
+    - "docs/PRD.md"
+    - "README.md"
+
+code_style:
+  formatter: "clang-format"
+  naming:
+    types: "PascalCase"
+    functions: "camelCase"
+    variables: "camelCase"
+    constants: "kPascalCase"
+    files: "snake_case"
+  header_source_split:
+    header: "공개 인터페이스, 타입 선언, 함수 시그니처만 둔다."
+    source: "구현 본문을 둔다."
+  rules:
+    - "C++17 이상을 기준으로 작성한다."
+    - "헤더에는 불필요한 include를 두지 않는다."
+    - "템플릿이 아닌 함수 구현은 소스 파일에 둔다."
+
+architecture:
+  style: "Boundary-Control-Entity"
+  dependency_direction:
+    - "boundary -> control"
+    - "control -> entity"
+    - "control -> data_interface"
+    - "data_adapter -> data_interface"
+    - "entity -> no_boundary_no_data_adapter"
+  boundary:
+    responsibility:
+      - "사용자 입력 파싱"
+      - "입력 형식 검증"
+      - "출력 포맷 직렬화"
+      - "외부 오류 메시지 생성"
+  control:
+    responsibility:
+      - "유스케이스 흐름 조정"
+      - "Boundary 요청을 Entity 호출로 연결"
+      - "Data 접근 인터페이스 호출"
+  entity:
+    responsibility:
+      - "단위 식별자 규칙"
+      - "측정값 규칙"
+      - "변환 비율 규칙"
+      - "단위 등록 규칙"
+      - "변환 계산"
+
+tdd_rules:
+  red_phase:
+    description: "구현 전에 실패해야 하는 테스트를 먼저 작성하여 요구 계약을 고정한다."
+    rules:
+      - "변환 비율, 입력 검증, 미지원 단위, 출력 직렬화 중 하나의 관찰 가능한 동작을 테스트 제목에 명시한다."
+      - "각 테스트는 하나의 실패 이유만 가져야 한다."
+      - "기대값은 meter 기준 비율과 허용 오차를 명시해야 한다."
+      - "오류 테스트는 errorCode와 메시지 패턴을 함께 검증해야 한다."
+    must_not:
+      - "테스트 없이 구현을 먼저 작성하지 않는다."
+      - "여러 규칙을 하나의 테스트에 섞지 않는다."
+      - "현재 구현에 맞춰 기대값을 느슨하게 작성하지 않는다."
+  green_phase:
+    description: "RED 테스트를 통과시키는 최소 구현만 수행한다."
+    rules:
+      - "실패 중인 테스트를 통과시키는 가장 작은 변경만 허용한다."
+      - "입력 검증 실패는 변환 실행 전에 반환되어야 한다."
+      - "테스트 통과 후 새 동작을 추가하려면 다시 RED 단계로 돌아간다."
+    must_not:
+      - "미래 요구사항을 예상해 추가 기능을 구현하지 않는다."
+      - "테스트 기대값을 구현 결과에 맞춰 변경하지 않는다."
+  refactor_phase:
+    description: "모든 테스트가 통과하는 상태에서 구조를 개선한다."
+    rules:
+      - "리팩터링 전후의 테스트 결과는 동일해야 한다."
+      - "Boundary, Control, Entity 책임이 섞이면 분리한다."
+      - "새 단위 추가 시 기존 변환 로직 수정이 필요한 구조를 제거한다."
+    must_not:
+      - "동작 변경을 리팩터링에 섞지 않는다."
+      - "테스트를 삭제하거나 약화하지 않는다."
+
+testing:
+  framework: "Catch2"
+  style: "AAA"
+  coverage:
+    domain:
+      line: 90
+      branch: 85
+    boundary:
+      line: 85
+      error_branch: 90
+    data:
+      line: 80
+      failure_case: 90
+    integration:
+      normal_scenarios_min: 3
+      failure_scenarios_min: 5
+  assertions:
+    floating_point_tolerance: 0.00001
+    protected_rates:
+      - "1 meter = 3.28084 feet"
+      - "1 meter = 1.09361 yard"
+
+forbidden:
+  debug_cout_spam:
+    pattern: "std::cout 또는 std::cerr를 임시 디버그 로그로 남기는 코드"
+    reason: "테스트 출력과 사용자 출력 계약을 오염시킨다."
+    alternative: "테스트 assertion 또는 명시적 logger 인터페이스를 사용한다."
+  magic_number_conversion_rates:
+    pattern: "변환 비율을 여러 구현 위치에 직접 작성"
+    reason: "비율 변경 시 불일치와 회귀를 만든다."
+    alternative: "단위 정의 저장소 또는 단일 registry에서 비율을 읽는다."
+  catch_all_swallow:
+    pattern: "catch(...) 후 오류를 무시하거나 기본값으로 계속 실행"
+    reason: "파싱 실패, 파일 실패, 변환 실패를 숨겨 잘못된 결과를 만든다."
+    alternative: "구체 예외 또는 오류 타입을 errorCode로 변환한다."
+  implementation_in_header:
+    pattern: "템플릿이 아닌 함수 본문을 헤더에 포함"
+    reason: "컴파일 의존성과 중복 정의 위험을 증가시킨다."
+    alternative: "헤더에는 선언만 두고 소스 파일에 구현한다."
+  global_mutable_state:
+    pattern: "전역 mutable registry, 전역 설정, 전역 출력 포맷 상태"
+    reason: "테스트 순서 의존성과 예측 불가능한 변환 결과를 만든다."
+    alternative: "생성자 주입 또는 명시적 context 객체를 사용한다."
+  using_namespace_std_in_header:
+    pattern: "헤더 파일에서 using namespace std 사용"
+    reason: "포함하는 모든 파일의 이름 공간을 오염시킨다."
+    alternative: "std:: 접두어를 명시한다."
+
+file_structure:
+  tree:
+    - "boundary/  # 입력 파서, 출력 직렬화, 오류 메시지 매핑"
+    - "control/   # 유스케이스 조정, Entity와 Data 인터페이스 연결"
+    - "entity/    # 단위, 측정값, 변환 비율, registry, 변환 규칙"
+    - "data/      # 설정 로더, JSON/YAML 저장소 어댑터"
+    - "tests/     # Catch2 테스트, fixture, 통합 테스트"
+    - "docs/      # PRD와 요구사항 문서"
+
+ai_behavior:
+  rules:
+    - "레이어 의존성 방향을 위반하는 코드를 제안하지 않는다."
+    - "새 동작을 구현하기 전에 실패 테스트를 먼저 제안하거나 작성한다."
+    - "리팩터링은 모든 관련 테스트가 green인 뒤에만 수행한다."
+    - "Domain 규칙을 Boundary 또는 Data에 중복 구현하지 않는다."
+    - "출력 포맷 변경과 변환 계산 변경을 같은 단계에 섞지 않는다."
+    - "요구사항이 모호하면 구현 전에 계약과 실패 조건을 먼저 정리한다."
+    - "문서 생성 요청에서는 구현 코드, 클래스 설계, 빌드 스크립트를 추가하지 않는다."
