@@ -1,0 +1,15 @@
+[meter:2.5]
+2.5 meter = 8.202100 feet
+2.5 meter = 2.734025 yard
+---
+[feet:1.0]
+1 feet = 0.304800 meter
+1 feet = 0.333332 yard
+---
+[yard:1.0]
+1 yard = 3.000009 feet
+1 yard = 0.914403 meter
+---
+[meter:0.0]
+0 meter = 0.000000 feet
+0 meter = 0.000000 yard

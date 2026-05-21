@@ -1,5 +1,6 @@
 #include <cctype>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <map>
 #include <regex>
@@ -9,11 +10,11 @@
 #include <vector>
 
 namespace {
-constexpr double kMeterToFeet = 3.28084;
-constexpr double kMeterToYard = 1.09361;
-constexpr double kMeterRate = 1.0;
-constexpr double kFeetRateToMeter = kMeterRate / kMeterToFeet;
-constexpr double kYardRateToMeter = kMeterRate / kMeterToYard;
+constexpr double METER_TO_FEET = 328084.0 / 100000.0;
+constexpr double METER_TO_YARD = 109361.0 / 100000.0;
+constexpr double METER_RATE = 1.0;
+constexpr double FEET_RATE_TO_METER = METER_RATE / METER_TO_FEET;
+constexpr double YARD_RATE_TO_METER = METER_RATE / METER_TO_YARD;
 
 struct ParsedInput {
     std::string unit;
@@ -30,11 +31,6 @@ struct BoundaryResult {
     std::vector<ConversionResult> conversions;
 };
 
-std::map<std::string, double>& unitRates() {
-    static std::map<std::string, double> rates;
-    return rates;
-}
-
 bool isValidUnitName(const std::string& unit) {
     if (unit.empty() || !std::islower(static_cast<unsigned char>(unit[0]))) {
         return false;
@@ -50,29 +46,123 @@ bool isValidUnitName(const std::string& unit) {
     return true;
 }
 
-double rateToMeter(const std::string& unit) {
-    const auto found = unitRates().find(unit);
-    if (found == unitRates().end()) {
-        throw std::invalid_argument("UNKNOWN_UNIT");
+class UnitRegistry {
+public:
+    void resetDefaults() {
+        rates_.clear();
+        rates_["meter"] = METER_RATE;
+        rates_["feet"] = FEET_RATE_TO_METER;
+        rates_["yard"] = YARD_RATE_TO_METER;
     }
 
-    return found->second;
+    void registerUnit(const std::string& unit, double rateToMeterValue) {
+        if (!isValidUnitName(unit) || rateToMeterValue <= 0.0) {
+            throw std::invalid_argument("INVALID_UNIT");
+        }
+
+        rates_[unit] = rateToMeterValue;
+    }
+
+    double rateToMeter(const std::string& unit) const {
+        const auto found = rates_.find(unit);
+        if (found == rates_.end()) {
+            throw std::invalid_argument("UNKNOWN_UNIT");
+        }
+
+        return found->second;
+    }
+
+    const std::map<std::string, double>& units() const {
+        return rates_;
+    }
+
+private:
+    std::map<std::string, double> rates_;
+};
+
+UnitRegistry& unitRegistry() {
+    static UnitRegistry registry;
+    return registry;
+}
+
+double rateToMeter(const std::string& unit) {
+    return unitRegistry().rateToMeter(unit);
 }
 
 void registerConfiguredUnit(const std::string& unit, double rateToMeterValue) {
-    if (!isValidUnitName(unit) || rateToMeterValue <= 0.0) {
-        throw std::invalid_argument("INVALID_UNIT");
+    unitRegistry().registerUnit(unit, rateToMeterValue);
+}
+
+class InputParser {
+public:
+    ParsedInput parse(const std::string& input) const {
+        const std::size_t pos = input.find(':');
+        if (pos == std::string::npos || pos != input.rfind(':')) {
+            throw std::invalid_argument("INVALID_FORMAT");
+        }
+
+        const std::string unit = input.substr(0, pos);
+        const std::string valueText = input.substr(pos + 1);
+        if (!isValidUnitName(unit)) {
+            throw std::invalid_argument("INVALID_UNIT_NAME");
+        }
+        if (valueText.empty()) {
+            throw std::invalid_argument("INVALID_VALUE");
+        }
+
+        std::size_t parsedLength = 0;
+        double value = 0.0;
+        try {
+            value = std::stod(valueText, &parsedLength);
+        } catch (...) {
+            throw std::invalid_argument("INVALID_VALUE");
+        }
+
+        if (parsedLength != valueText.size()) {
+            throw std::invalid_argument("INVALID_VALUE");
+        }
+        if (value < 0.0) {
+            throw std::invalid_argument("NEGATIVE_VALUE");
+        }
+
+        rateToMeter(unit);
+        return {unit, value};
+    }
+};
+
+class OutputFormatter {
+public:
+    std::string formatPlain(const BoundaryResult& result) const {
+        std::ostringstream output;
+        for (const auto& conversion : result.conversions) {
+            output << std::defaultfloat << result.source.value << ' ' << result.source.unit
+                   << " = " << std::fixed << std::setprecision(6) << conversion.value << ' '
+                   << conversion.unit << '\n';
+        }
+
+        return output.str();
     }
 
-    unitRates()[unit] = rateToMeterValue;
-}
+    std::string formatJson(const BoundaryResult& result) const {
+        std::ostringstream output;
+        output << "{\"sourceUnit\":\"" << result.source.unit << "\",\"sourceValue\":"
+               << result.source.value << ",\"conversions\":[";
+        for (std::size_t index = 0; index < result.conversions.size(); ++index) {
+            if (index != 0) {
+                output << ',';
+            }
+            output << "{\"unit\":\"" << result.conversions[index].unit << "\",\"value\":"
+                   << result.conversions[index].value << '}';
+        }
+        output << "]}";
+
+        return output.str();
+    }
+};
 }
 
 void resetDefaultUnits() {
-    unitRates().clear();
-    unitRates()["meter"] = kMeterRate;
-    unitRates()["feet"] = kFeetRateToMeter;
-    unitRates()["yard"] = kYardRateToMeter;
+    unitRegistry().resetDefaults();
 }
 
 void registerUnit(const std::string& unit, double rateToMeterValue) {
@@ -80,37 +170,7 @@ void registerUnit(const std::string& unit, double rateToMeterValue) {
 }
 
 ParsedInput parseInput(const std::string& input) {
-    const std::size_t pos = input.find(':');
-    if (pos == std::string::npos || pos != input.rfind(':')) {
-        throw std::invalid_argument("INVALID_FORMAT");
-    }
-
-    const std::string unit = input.substr(0, pos);
-    const std::string valueText = input.substr(pos + 1);
-    if (!isValidUnitName(unit)) {
-        throw std::invalid_argument("INVALID_UNIT_NAME");
-    }
-    if (valueText.empty()) {
-        throw std::invalid_argument("INVALID_VALUE");
-    }
-
-    std::size_t parsedLength = 0;
-    double value = 0.0;
-    try {
-        value = std::stod(valueText, &parsedLength);
-    } catch (...) {
-        throw std::invalid_argument("INVALID_VALUE");
-    }
-
-    if (parsedLength != valueText.size()) {
-        throw std::invalid_argument("INVALID_VALUE");
-    }
-    if (value < 0.0) {
-        throw std::invalid_argument("NEGATIVE_VALUE");
-    }
-
-    rateToMeter(unit);
-    return {unit, value};
+    return InputParser().parse(input);
 }
 
 double convert(const std::string& fromUnit, double value, const std::string& toUnit) {
@@ -122,7 +182,7 @@ std::vector<ConversionResult> convertAll(const std::string& fromUnit, double val
     rateToMeter(fromUnit);
 
     std::vector<ConversionResult> conversions;
-    for (const auto& unit : unitRates()) {
+    for (const auto& unit : unitRegistry().units()) {
         if (unit.first != fromUnit) {
             conversions.push_back({unit.first, convert(fromUnit, value, unit.first)});
         }
@@ -137,29 +197,11 @@ BoundaryResult handleInput(const std::string& input) {
 }
 
 std::string formatPlain(const BoundaryResult& result) {
-    std::ostringstream output;
-    for (const auto& conversion : result.conversions) {
-        output << result.source.value << ' ' << result.source.unit << " = "
-               << conversion.value << ' ' << conversion.unit << '\n';
-    }
-
-    return output.str();
+    return OutputFormatter().formatPlain(result);
 }
 
 std::string formatJson(const BoundaryResult& result) {
-    std::ostringstream output;
-    output << "{\"sourceUnit\":\"" << result.source.unit << "\",\"sourceValue\":"
-           << result.source.value << ",\"conversions\":[";
-    for (std::size_t index = 0; index < result.conversions.size(); ++index) {
-        if (index != 0) {
-            output << ',';
-        }
-        output << "{\"unit\":\"" << result.conversions[index].unit << "\",\"value\":"
-               << result.conversions[index].value << '}';
-    }
-    output << "]}";
-
-    return output.str();
+    return OutputFormatter().formatJson(result);
 }
 
 bool loadConfig(const std::string& path) {
@@ -188,7 +230,7 @@ bool loadConfig(const std::string& path) {
 #ifndef UNIT_CONVERTER_TEST
 int main() {
     resetDefaultUnits();
-    std::cout << "Insert value for converting (ex: meter:2.5): ";
+    std::cerr << "Insert value for converting (ex: meter:2.5): ";
 
     std::string input;
     std::getline(std::cin, input);
