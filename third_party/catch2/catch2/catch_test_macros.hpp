@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cmath>
 #include <exception>
 #include <functional>
 #include <iostream>
@@ -33,6 +34,28 @@ public:
     explicit AssertionFailure(const std::string& message) : std::runtime_error(message) {}
 };
 
+class ApproxMatcher {
+public:
+    explicit ApproxMatcher(double target) : target_(target) {}
+
+    ApproxMatcher& epsilon(double epsilon) {
+        epsilon_ = epsilon;
+        return *this;
+    }
+
+    bool matches(double actual) const {
+        return std::fabs(actual - target_) <= epsilon_;
+    }
+
+private:
+    double target_;
+    double epsilon_ = 1e-12;
+};
+
+inline bool operator==(double actual, const ApproxMatcher& matcher) {
+    return matcher.matches(actual);
+}
+
 inline int runTests() {
     int failures = 0;
     for (const auto& test : registry()) {
@@ -53,6 +76,10 @@ inline int runTests() {
 }
 
 }  // namespace Catch
+
+inline Catch::ApproxMatcher Approx(double target) {
+    return Catch::ApproxMatcher(target);
+}
 
 #define CATCH_INTERNAL_CONCAT_IMPL(left, right) left##right
 #define CATCH_INTERNAL_CONCAT(left, right) CATCH_INTERNAL_CONCAT_IMPL(left, right)

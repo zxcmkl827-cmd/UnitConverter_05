@@ -1,5 +1,7 @@
 #define CATCH_CONFIG_MAIN
 #include <catch2/catch_test_macros.hpp>
+#define UNIT_CONVERTER_TEST
+#include "../cpp/UnitConverter.cpp"
 
 TEST_CASE("parse_meter_input_returns_conversion_result", "[boundary]") { FAIL("RED"); }
 TEST_CASE("parse_missing_colon_throws_invalid_argument", "[boundary]") { FAIL("RED"); }
@@ -8,7 +10,9 @@ TEST_CASE("parse_unknown_unit_throws_invalid_argument", "[boundary]") { FAIL("RE
 TEST_CASE("format_plain_output_preserves_source_unit_and_value", "[boundary]") { FAIL("RED"); }
 TEST_CASE("format_json_output_returns_expected_schema", "[boundary]") { FAIL("RED"); }
 
-TEST_CASE("convert_meter_to_feet_returns_correct_ratio", "[domain]") { FAIL("RED"); }
+TEST_CASE("convert_meter_to_feet_returns_correct_ratio", "[domain]") {
+    REQUIRE(convert("meter", 2.5, "feet") == Approx(8.20210).epsilon(1e-5));
+}
 TEST_CASE("convert_feet_to_meter_returns_inverse_ratio", "[domain]") { FAIL("RED"); }
 TEST_CASE("convert_meter_to_yard_returns_correct_ratio", "[domain]") { FAIL("RED"); }
 TEST_CASE("convert_yard_to_meter_returns_inverse_ratio", "[domain]") { FAIL("RED"); }

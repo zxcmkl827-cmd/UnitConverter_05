@@ -1,7 +1,22 @@
 #include <iostream>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 
+namespace {
+constexpr double kMeterToFeet = 3.28084;
+constexpr double kMeterToYard = 1.09361;
+}
+
+double convert(const std::string& fromUnit, double value, const std::string& toUnit) {
+    if (fromUnit == "meter" && toUnit == "feet") {
+        return value * kMeterToFeet;
+    }
+
+    throw std::invalid_argument("Unsupported conversion");
+}
+
+#ifndef UNIT_CONVERTER_TEST
 int main() {
     std::cout << "Insert value for converting (ex: meter:2.5): ";
 
@@ -32,17 +47,17 @@ int main() {
     if (unit == "meter") {
         meterValue = value;
     } else if (unit == "feet") {
-        meterValue = value / 3.28084;
+        meterValue = value / kMeterToFeet;
     } else if (unit == "yard") {
-        meterValue = value / 1.09361;
+        meterValue = value / kMeterToYard;
     } else {
         std::cerr << "Unknown unit: " << unit << std::endl;
         return 1;
     }
 
     double inMeters = meterValue;
-    double inFeet = meterValue * 3.28084;
-    double inYards = meterValue * 1.09361;
+    double inFeet = meterValue * kMeterToFeet;
+    double inYards = meterValue * kMeterToYard;
 
     std::cout << value << " " << unit << " = " << inMeters << " meter" << std::endl;
     std::cout << value << " " << unit << " = " << inFeet << " feet" << std::endl;
@@ -50,3 +65,4 @@ int main() {
 
     return 0;
 }
+#endif
