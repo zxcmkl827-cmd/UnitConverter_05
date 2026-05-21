@@ -35,6 +35,10 @@ TEST_CASE("parse_missing_colon_throws_invalid_argument", "[boundary]") {
     requireInvalidArgument([] { parseInput("meter"); });
 }
 
+TEST_CASE("parse_multiple_colons_throws_invalid_argument", "[boundary]") {
+    requireInvalidArgument([] { parseInput("meter:1.0:extra"); });
+}
+
 TEST_CASE("parse_negative_value_throws_invalid_argument", "[boundary]") {
     requireInvalidArgument([] { parseInput("meter:-1.0"); });
 }
@@ -94,6 +98,13 @@ TEST_CASE("convert_yard_to_meter_returns_inverse_ratio", "[domain]") {
     REQUIRE(convert("yard", 1.0, "meter") == Approx(0.91440).epsilon(1e-5));
 }
 
+TEST_CASE("convert_between_non_base_units_uses_meter_as_reference", "[domain]") {
+    resetDefaultUnits();
+
+    REQUIRE(convert("feet", 3.0, "yard") == Approx(1.0).epsilon(1e-5));
+    REQUIRE(convert("yard", 1.0, "feet") == Approx(3.0).epsilon(1e-5));
+}
+
 TEST_CASE("convert_all_returns_all_registered_unit_results", "[domain]") {
     resetDefaultUnits();
 
@@ -114,8 +125,18 @@ TEST_CASE("register_unit_enables_new_unit_conversion", "[domain]") {
     REQUIRE(convert("cubit", 1.0, "meter") == Approx(0.4572).epsilon(1e-5));
 }
 
+TEST_CASE("register_unit_accepts_digits_and_underscores_after_first_letter", "[domain]") {
+    resetDefaultUnits();
+
+    registerUnit("custom_1", 2.0);
+
+    REQUIRE(convert("custom_1", 1.0, "meter") == Approx(2.0).epsilon(1e-5));
+}
+
 TEST_CASE("register_unit_rejects_invalid_definition", "[domain]") {
     requireInvalidArgument([] { registerUnit("bad-unit", 1.0); });
+    requireInvalidArgument([] { registerUnit("zero_rate", 0.0); });
+    requireInvalidArgument([] { registerUnit("negative_rate", -1.0); });
 }
 
 TEST_CASE("load_json_config_applies_configured_rates", "[domain]") {
